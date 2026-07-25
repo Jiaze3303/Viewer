@@ -370,12 +370,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/dxf-parser@1.1.2/dist/dxf-parser.js"></script>
 <script async src="https://cdn.jsdelivr.net/npm/occt-import-js@0.0.23/dist/occt-import-js.js"></script>
-<script type="module">
-import { LibreDwg } from 'https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.9/dist/libredwg-web.js';
-window.LibreDwg = LibreDwg;
-window._libredwgReady = LibreDwg.create('https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.9/wasm');
-</script>
 <script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"}}</script>
+<script type="module">
+import('https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.9/dist/libredwg-web.js').then(m => {
+  window.LibreDwg = m.LibreDwg;
+  window._libredwgReady = m.LibreDwg.create('https://cdn.jsdelivr.net/npm/@mlightcad/libredwg-web@0.7.9/wasm');
+}).catch(e => console.warn('[Viewer] LibreDwg load failed:', e));
+</script>
 <script type="module">
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -601,7 +602,6 @@ function clearScene() {
 
 window.switchToFile = switchToFile;
 window.removeFile = removeFile;
-window.showUpload = showUpload;
 
 function renderFileTabs() {
   const sidebar = document.getElementById('file-sidebar');
