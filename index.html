@@ -595,6 +595,8 @@ function clearScene() {
   while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
   meshObjects = [];
   dxfEntityData.clear();
+  // Dispose old controls to prevent event listener leaks
+  if (controls) { controls.dispose(); controls = null; }
 }
 
 function renderFileTabs() {
@@ -633,8 +635,8 @@ async function processFile(file) {
   const exts2d = ['dxf', 'dwg'];
   if (![...exts3d, ...exts2d].includes(ext)) { alert('不支持的格式: .' + ext); return; }
   uploadOverlay.classList.add('hidden');
-  // Save current scene before loading new file
-  if (activeFileId) saveCurrentScene();
+  // Save and clear current scene before loading new file
+  if (activeFileId) { saveCurrentScene(); clearScene(); }
   document.getElementById('file-name').textContent = file.name;
   document.getElementById('file-info').textContent = formatSize(file.size);
   P.show('正在处理 ' + file.name);
@@ -698,6 +700,7 @@ async function processFile(file) {
 
   P.step('build'); P.update(80, `构建 ${result.meshes.length} 个零件...`); await sleep(50);
   addFile(file.name, file.size, ext, result, '3d');
+  restore3DUI();
   buildScene(result);
   P.done(); setTimeout(() => P.hide(), 600);
   document.getElementById('btn-export').style.display = '';
@@ -1294,7 +1297,7 @@ function fmt(v) {
 }
 
 // ========== Render ==========
-function animate() { requestAnimationFrame(animate); controls.update(); if (window._arrowPanTick) window._arrowPanTick(); renderer.render(scene, camera); fc++; const now = performance.now(); if (now - lt >= 1000) { document.getElementById('sF').textContent = fc; fc = 0; lt = now; } }
+function animate() { requestAnimationFrame(animate); if (controls) controls.update(); if (window._arrowPanTick) window._arrowPanTick(); renderer.render(scene, camera); fc++; const now = performance.now(); if (now - lt >= 1000) { document.getElementById('sF').textContent = fc; fc = 0; lt = now; } }
 function onResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
   if (camera.isPerspectiveCamera) {
