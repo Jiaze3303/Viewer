@@ -216,8 +216,9 @@
   .fitem-add:hover { border-color: var(--t1); color: var(--t1); }
 
   /* Shift UI when sidebar visible */
-  .file-sidebar.visible ~ .header { padding-left: 176px; }
-  .file-sidebar.visible ~ .part-panel { left: 176px; }
+  .file-sidebar.visible ~ .header { padding-left: 184px; }
+  .file-sidebar.visible ~ .part-panel { left: 184px; }
+  .file-sidebar.visible ~ .vtabs { left: calc(50% + 80px); }
 
   /* Shift header when tabs visible */
   .file-tabs.visible ~ .header { top: 36px; }
@@ -587,15 +588,19 @@ function restoreCachedScene(file) {
 
 function switchToFile(id) {
   if (id === activeFileId) return;
-  // Save current scene
-  saveCurrentScene();
-  // Find target file
+  const prevFile = loadedFiles.find(f => f.id === activeFileId);
   const file = loadedFiles.find(f => f.id === id);
   if (!file) return;
+
+  // Save current scene
+  saveCurrentScene();
   activeFileId = id;
-  // Try to restore cached scene (instant)
-  if (!restoreCachedScene(file)) {
-    // No cache, rebuild from data
+
+  // Need to rebuild if switching between 2D/3D (camera type changes)
+  const needRebuild = !file.sceneCache || (prevFile && prevFile.type !== file.type);
+
+  if (needRebuild) {
+    clearScene();
     if (file.type === '2d') {
       buildDXFScene(file.data);
       is2DMode = true;
@@ -603,7 +608,10 @@ function switchToFile(id) {
       restore3DUI();
       buildScene(file.data);
     }
+  } else {
+    restoreCachedScene(file);
   }
+
   document.getElementById('file-name').textContent = file.name;
   document.getElementById('file-info').textContent = formatSize(file.size);
   renderFileTabs();
