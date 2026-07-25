@@ -607,15 +607,15 @@ function buildScene(result) {
     meshObjects.forEach(m => { m.center.sub(cb); m.origPos.copy(m.mesh.position); });
 
     const sphere = new THREE.Sphere(); box.getBoundingSphere(sphere);
-    const dist = sphere.radius * 2.5;
-    camera.position.set(dist, dist * 0.7, dist);
+    const dist = sphere.radius * 3;
+    camera.position.set(dist, dist * 0.8, dist);
     controls.target.set(0, 0, 0);
     // Adapt camera planes and controls to model size
-    camera.near = sphere.radius * 0.001;
-    camera.far = sphere.radius * 100;
+    camera.near = Math.max(0.01, sphere.radius * 0.0001);
+    camera.far = sphere.radius * 200;
     camera.updateProjectionMatrix();
-    controls.minDistance = sphere.radius * 0.1;
-    controls.maxDistance = sphere.radius * 20;
+    controls.minDistance = sphere.radius * 0.01;
+    controls.maxDistance = sphere.radius * 50;
     controls.update();
 
     gridG.clear();
@@ -750,8 +750,8 @@ window.setOp = function(v) {
 };
 
 // ========== Camera ==========
-window.resetCam = function() { const s = new THREE.Sphere(); new THREE.Box3().setFromObject(modelGroup).getBoundingSphere(s); const d = s.radius*2.5; camera.near = s.radius*0.001; camera.far = s.radius*100; camera.updateProjectionMatrix(); controls.minDistance = s.radius*0.1; controls.maxDistance = s.radius*20; animCam(new THREE.Vector3(d,d*0.7,d), new THREE.Vector3(0,0,0)); };
-window.setCV = function(v) { const s = new THREE.Sphere(); new THREE.Box3().setFromObject(modelGroup).getBoundingSphere(s); const d = s.radius*2.5; if(v==='front') animCam(new THREE.Vector3(0,0,d),new THREE.Vector3(0,0,0)); else if(v==='side') animCam(new THREE.Vector3(d,0,0),new THREE.Vector3(0,0,0)); else animCam(new THREE.Vector3(0,d,0.01),new THREE.Vector3(0,0,0)); };
+window.resetCam = function() { const s = new THREE.Sphere(); new THREE.Box3().setFromObject(modelGroup).getBoundingSphere(s); const d = s.radius*3; camera.near = Math.max(0.01,s.radius*0.0001); camera.far = s.radius*200; camera.updateProjectionMatrix(); controls.minDistance = s.radius*0.01; controls.maxDistance = s.radius*50; animCam(new THREE.Vector3(d,d*0.8,d), new THREE.Vector3(0,0,0)); };
+window.setCV = function(v) { const s = new THREE.Sphere(); new THREE.Box3().setFromObject(modelGroup).getBoundingSphere(s); const d = s.radius*3; if(v==='front') animCam(new THREE.Vector3(0,0,d),new THREE.Vector3(0,0,0)); else if(v==='side') animCam(new THREE.Vector3(d,0,0),new THREE.Vector3(0,0,0)); else animCam(new THREE.Vector3(0,d,0.01),new THREE.Vector3(0,0,0)); };
 function animCam(tp, tl) { const sp=camera.position.clone(),st=controls.target.clone(),t0=performance.now(),dur=800; (function tick(now){ const t=Math.min((now-t0)/dur,1),e=1-Math.pow(1-t,3); camera.position.lerpVectors(sp,tp,e); controls.target.lerpVectors(st,tl,e); controls.update(); if(t<1)requestAnimationFrame(tick); })(performance.now()); }
 
 // ========== Toggles ==========
