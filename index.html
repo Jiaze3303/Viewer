@@ -167,6 +167,60 @@
   .stat-v { font-size: 14px; font-weight: 700; color: var(--t1); font-variant-numeric: tabular-nums; }
   .stat-l { font-size: 8px; color: var(--t2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 1px; }
 
+  /* File list sidebar */
+  .file-sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0; z-index: 150;
+    width: 200px; background: rgba(245,243,240,0.95);
+    border-right: 1px solid var(--border);
+    backdrop-filter: blur(12px);
+    display: none; flex-direction: column;
+    padding-top: 60px;
+  }
+  .file-sidebar.visible { display: flex; }
+  .file-sidebar-header {
+    padding: 10px 14px; font-size: 11px; font-weight: 600;
+    color: var(--t2); border-bottom: 1px solid var(--border);
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .file-sidebar-header button {
+    background: none; border: 1px solid var(--border); border-radius: 6px;
+    color: var(--t2); font-size: 10px; padding: 3px 8px; cursor: pointer;
+    font-family: inherit;
+  }
+  .file-sidebar-header button:hover { border-color: var(--t1); color: var(--t1); }
+  .file-list {
+    flex: 1; overflow-y: auto; padding: 6px;
+  }
+  .file-item {
+    padding: 8px 10px; border-radius: 8px; font-size: 11px;
+    color: var(--t2); cursor: pointer; transition: all 0.2s;
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 2px; border: 1px solid transparent;
+  }
+  .file-item:hover { background: rgba(0,0,0,0.04); color: var(--t1); }
+  .file-item.active { background: var(--t1); color: var(--bg); border-color: var(--t1); }
+  .file-item .fi-icon {
+    width: 20px; height: 20px; border-radius: 5px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 10px; font-weight: 700; flex-shrink: 0;
+  }
+  .file-item .fi-icon.s3d { background: #E53935; color: #fff; }
+  .file-item .fi-icon.s2d { background: #1E88E5; color: #fff; }
+  .file-item .fi-name {
+    flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .file-item .fi-close {
+    opacity: 0; border: none; background: none; color: var(--t2);
+    cursor: pointer; font-size: 14px; line-height: 1; padding: 0 2px;
+  }
+  .file-item:hover .fi-close { opacity: 1; }
+  .file-item.active .fi-close { color: var(--bg); opacity: 0.7; }
+  .file-item.active .fi-close:hover { opacity: 1; }
+
+  /* Shift content when sidebar visible */
+  .file-sidebar.visible ~ .header { padding-left: 220px; }
+  .file-sidebar.visible ~ .part-panel { left: 216px; }
+
   /* Part list */
   .part-panel {
     position: fixed; left: 16px; top: 50%; transform: translateY(-50%);
@@ -267,6 +321,15 @@
   <button class="vtab" data-m="both" onclick="setVM('both')">线面</button>
 </div>
 
+<!-- File sidebar -->
+<div class="file-sidebar" id="file-sidebar">
+  <div class="file-sidebar-header">
+    <span>已打开文件</span>
+    <button onclick="showUpload()">+ 添加</button>
+  </div>
+  <div class="file-list" id="file-list"></div>
+</div>
+
 <!-- Tooltip -->
 <div class="tooltip-3d" id="tooltip-3d"></div>
 
@@ -328,6 +391,11 @@ let meshObjects = [], autoRotate = false, showEdges = false, showGrid = false, c
 let fc = 0, lt = 0;
 const gridG = new THREE.Group();
 let occtReady = null;
+
+// Multi-file state
+let loadedFiles = []; // {id, name, size, ext, data, type:'3d'|'2d'}
+let activeFileId = null;
+let fileIdCounter = 0;
 
 // Colors for light theme
 const C = {
@@ -446,6 +514,72 @@ async function initOCCT() {
   P.update(40, '引擎就绪');
 }
 
+// ========== Multi-File Manager ==========
+function addFile(name, size, ext, data, type) {
+  const id = ++fileIdCounter;
+  loadedFiles.push({ id, name, size, ext, data, type });
+  activeFileId = id;
+  renderFileList();
+  return id;
+}
+
+function removeFile(id) {
+  loadedFiles = loadedFiles.filter(f => f.id !== id);
+  if (activeFileId === id) {
+    if (loadedFiles.length > 0) {
+      switchToFile(loadedFiles[loadedFiles.length - 1].id);
+    } else {
+      activeFileId = null;
+      clearScene();
+      showUpload();
+    }
+  }
+  renderFileList();
+}
+
+function switchToFile(id) {
+  const file = loadedFiles.find(f => f.id === id);
+  if (!file || id === activeFileId) return;
+  activeFileId = id;
+  renderFileList();
+  // Rebuild scene from stored data
+  if (file.type === '2d') {
+    buildDXFScene(file.data);
+    is2DMode = true;
+  } else {
+    restore3DUI();
+    buildScene(file.data);
+  }
+  document.getElementById('file-name').textContent = file.name;
+  document.getElementById('file-info').textContent = formatSize(file.size);
+}
+
+function clearScene() {
+  while (modelGroup.children.length) modelGroup.remove(modelGroup.children[0]);
+  meshObjects = [];
+  dxfEntityData.clear();
+}
+
+function renderFileList() {
+  const sidebar = document.getElementById('file-sidebar');
+  const list = document.getElementById('file-list');
+  if (loadedFiles.length <= 1) {
+    sidebar.classList.remove('visible');
+    return;
+  }
+  sidebar.classList.add('visible');
+  list.innerHTML = '';
+  loadedFiles.forEach(f => {
+    const item = document.createElement('div');
+    item.className = 'file-item' + (f.id === activeFileId ? ' active' : '');
+    const icon = f.type === '2d' ? '2D' : '3D';
+    const iconClass = f.type === '2d' ? 's2d' : 's3d';
+    item.innerHTML = `<span class="fi-icon ${iconClass}">${icon}</span><span class="fi-name" title="${f.name}">${f.name}</span><button class="fi-close" onclick="event.stopPropagation();removeFile(${f.id})">×</button>`;
+    item.addEventListener('click', () => switchToFile(f.id));
+    list.appendChild(item);
+  });
+}
+
 // ========== Upload ==========
 const uploadOverlay = document.getElementById('upload-overlay');
 const uploadArea = document.getElementById('upload-area');
@@ -497,6 +631,7 @@ async function processFile(file) {
       const dxf = parser.parseSync(text);
       P.steps.parse.className = 'pstep done'; P.steps.parse.querySelector('.pstep-icon').textContent = '✓';
       P.step('build'); P.update(80, '构建 2D 图形...'); await sleep(50);
+      addFile(file.name, file.size, ext, dxf, '2d');
       buildDXFScene(dxf);
       is2DMode = true;
       P.done(); setTimeout(() => P.hide(), 600);
@@ -524,6 +659,7 @@ async function processFile(file) {
   P.steps.parse.className = 'pstep done'; P.steps.parse.querySelector('.pstep-icon').textContent = '✓';
 
   P.step('build'); P.update(80, `构建 ${result.meshes.length} 个零件...`); await sleep(50);
+  addFile(file.name, file.size, ext, result, '3d');
   buildScene(result);
   P.done(); setTimeout(() => P.hide(), 600);
   document.getElementById('btn-export').style.display = '';
