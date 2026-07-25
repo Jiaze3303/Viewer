@@ -920,15 +920,35 @@ function animIn() {
     const mesh = m.mesh, tgt = m.origPos.clone();
     const off = new THREE.Vector3((Math.random()-0.5)*300, (Math.random()-0.5)*300, (Math.random()-0.5)*300);
     mesh.position.add(off); mesh.material.opacity = 0;
+    // Apply current view mode material
+    if (curVM === 'wireframe') { mesh.material.wireframe = true; mesh.material.color.setHex(C.wire); }
+    else if (curVM === 'xray') { mesh.material.wireframe = false; mesh.material.opacity = 0; mesh.material.color.setHex(0xC8C4BF); }
+    else if (curVM === 'both') { mesh.material.wireframe = false; mesh.material.color.setHex(0xC8C4BF); }
+    else { mesh.material.wireframe = false; mesh.material.color.setHex(0xC8C4BF); }
     const st = performance.now() + i * 15, dur = 1000 + Math.random() * 600;
     (function tick(now) {
       const el = now - st; if (el < 0) { requestAnimationFrame(tick); return; }
       const t = Math.min(el / dur, 1), ease = t === 1 ? 1 : 1 - Math.pow(2, -10 * t);
       mesh.position.lerpVectors(mesh.position, tgt, ease * 0.05);
-      mesh.material.opacity = ease;
-      if (m.edges) m.edges.position.copy(mesh.position);
+      // Animate opacity based on view mode
+      if (curVM === 'xray') mesh.material.opacity = ease * 0.15;
+      else if (curVM === 'both') mesh.material.opacity = ease * globOp * 0.7;
+      else if (curVM === 'wireframe') mesh.material.opacity = ease * 0.8;
+      else mesh.material.opacity = ease * globOp;
+      if (m.edges) {
+        m.edges.position.copy(mesh.position);
+        m.edges.visible = curVM === 'xray' || curVM === 'both' || (curVM === 'solid' && showEdges);
+        m.edges.material.opacity = curVM === 'xray' ? ease * 0.8 : (curVM === 'both' ? ease * 0.5 : ease * 0.5);
+      }
       if (t < 1) requestAnimationFrame(tick);
-      else { mesh.position.copy(tgt); mesh.material.opacity = globOp; }
+      else {
+        mesh.position.copy(tgt);
+        // Final material state
+        if (curVM === 'xray') { mesh.material.opacity = 0.15; }
+        else if (curVM === 'both') { mesh.material.opacity = globOp * 0.7; }
+        else if (curVM === 'wireframe') { mesh.material.opacity = 0.8; }
+        else { mesh.material.opacity = globOp; }
+      }
     })(performance.now());
   });
 }
