@@ -541,75 +541,49 @@ function removeFile(id) {
 }
 
 function saveCurrentScene() {
-  // Save current scene state to the active file
+  // Save camera state to the active file (lightweight, no scene objects)
   const file = loadedFiles.find(f => f.id === activeFileId);
   if (!file) return;
-  // Detach all children from modelGroup and store them
-  const children = [];
-  while (modelGroup.children.length) {
-    const child = modelGroup.children[0];
-    modelGroup.remove(child);
-    children.push(child);
-  }
-  file.sceneCache = {
-    children,
-    meshObjects: [...meshObjects],
-    is2DMode,
-    cameraPos: camera.position.clone(),
-    cameraTarget: controls.target.clone(),
-    cameraNear: camera.near,
-    cameraFar: camera.far,
-    ctrlMinDist: controls.minDistance,
-    ctrlMaxDist: controls.maxDistance,
-    ctrlRotate: controls.enableRotate,
-    dxfData: new Map(dxfEntityData)
+  file.cameraState = {
+    pos: camera.position.clone(),
+    target: controls.target.clone(),
+    near: camera.near,
+    far: camera.far,
+    minDist: controls.minDistance,
+    maxDist: controls.maxDistance
   };
-}
-
-function restoreCachedScene(file) {
-  clearScene();
-  if (!file.sceneCache) return false;
-  const sc = file.sceneCache;
-  sc.children.forEach(c => modelGroup.add(c));
-  meshObjects = sc.meshObjects;
-  is2DMode = sc.is2DMode;
-  dxfEntityData = sc.dxfData || new Map();
-  camera.position.copy(sc.cameraPos);
-  controls.target.copy(sc.cameraTarget);
-  camera.near = sc.cameraNear;
-  camera.far = sc.cameraFar;
-  camera.updateProjectionMatrix();
-  controls.minDistance = sc.ctrlMinDist;
-  controls.maxDistance = sc.ctrlMaxDist;
-  controls.enableRotate = sc.ctrlRotate;
-  controls.update();
-  return true;
 }
 
 function switchToFile(id) {
   if (id === activeFileId) return;
-  const prevFile = loadedFiles.find(f => f.id === activeFileId);
   const file = loadedFiles.find(f => f.id === id);
   if (!file) return;
 
-  // Save current scene
+  // Save current camera
   saveCurrentScene();
   activeFileId = id;
 
-  // Need to rebuild if switching between 2D/3D (camera type changes)
-  const needRebuild = !file.sceneCache || (prevFile && prevFile.type !== file.type);
-
-  if (needRebuild) {
-    clearScene();
-    if (file.type === '2d') {
-      buildDXFScene(file.data);
-      is2DMode = true;
-    } else {
-      restore3DUI();
-      buildScene(file.data);
-    }
+  // Always rebuild from stored data (reliable, data is already parsed)
+  clearScene();
+  if (file.type === '2d') {
+    buildDXFScene(file.data);
+    is2DMode = true;
   } else {
-    restoreCachedScene(file);
+    restore3DUI();
+    buildScene(file.data);
+  }
+
+  // Restore camera if we have saved state
+  if (file.cameraState) {
+    const cs = file.cameraState;
+    camera.position.copy(cs.pos);
+    controls.target.copy(cs.target);
+    camera.near = cs.near;
+    camera.far = cs.far;
+    camera.updateProjectionMatrix();
+    controls.minDistance = cs.minDist;
+    controls.maxDistance = cs.maxDist;
+    controls.update();
   }
 
   document.getElementById('file-name').textContent = file.name;
