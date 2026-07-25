@@ -510,10 +510,6 @@ async function initOCCT() {
 }
 
 // ========== Multi-File Manager ==========
-let loadedFiles = []; // {id, name, size, ext, data, type, sceneCache}
-let activeFileId = null;
-let fileIdCounter = 0;
-
 function addFile(name, size, ext, data, type) {
   const id = ++fileIdCounter;
   loadedFiles.push({ id, name, size, ext, data, type, sceneCache: null });
