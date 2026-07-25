@@ -217,8 +217,9 @@
 
   /* Shift UI when sidebar visible */
   .file-sidebar.visible ~ .header { padding-left: 184px; }
-  .file-sidebar.visible ~ .part-panel { left: 184px; }
+  .file-sidebar.visible ~ .part-panel { left: 176px; }
   .file-sidebar.visible ~ .vtabs { left: calc(50% + 80px); }
+  .file-sidebar.visible ~ .bottom { left: calc(50% + 80px); }
 
   /* Shift header when tabs visible */
   .file-tabs.visible ~ .header { top: 36px; }
@@ -273,6 +274,12 @@
 </head>
 <body>
 
+<!-- File sidebar -->
+<div class="file-sidebar" id="file-sidebar">
+  <div class="file-sidebar-hd">已打开文件</div>
+  <div class="file-list" id="file-list"></div>
+</div>
+
 <!-- Upload -->
 <div class="upload-overlay" id="upload-overlay">
   <div class="upload-area" id="upload-area">
@@ -322,12 +329,6 @@
   <button class="vtab" data-m="wireframe" onclick="setVM('wireframe')">线框</button>
   <button class="vtab" data-m="xray" onclick="setVM('xray')">X-Ray</button>
   <button class="vtab" data-m="both" onclick="setVM('both')">线面</button>
-</div>
-
-<!-- File sidebar -->
-<div class="file-sidebar" id="file-sidebar">
-  <div class="file-sidebar-hd">已打开文件</div>
-  <div class="file-list" id="file-list"></div>
 </div>
 
 <!-- Tooltip -->
