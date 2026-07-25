@@ -426,12 +426,12 @@ function initThree() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.0;
+  renderer.toneMappingExposure = 1.5;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   scene = new THREE.Scene();
   scene.background = new THREE.Color(C.bg);
-  scene.fog = new THREE.FogExp2(C.bg, 0.001);
+  scene.fog = null; // no fog, large models need to be visible at any distance
 
   camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100000);
   camera.position.set(200, 150, 200);
