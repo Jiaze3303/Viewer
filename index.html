@@ -717,8 +717,9 @@ async function processFile(file) {
 function readFileWithProgress(file) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
-    reader.onprogress = e => { if (e.lengthComputable) P.update(e.loaded / e.total * 15, `读取 ${formatSize(e.loaded)} / ${formatSize(e.total)}`); };
-    reader.onload = () => resolve(reader.result);
+    P.update(2, '正在读取 ' + formatSize(file.size) + '...');
+    reader.onprogress = e => { if (e.lengthComputable) P.update(e.loaded / e.total * 15, '读取 ' + formatSize(e.loaded) + ' / ' + formatSize(e.total)); };
+    reader.onload = () => { P.update(15, '读取完成'); resolve(reader.result); };
     reader.onerror = () => reject(reader.error);
     reader.readAsArrayBuffer(file);
   });
